@@ -236,6 +236,10 @@ message S3 {
   repeated string buckets = 3;
   int64 max_object_size = 6;
   repeated string roles = 7;
+  string region = 8;
+  string endpoint_url = 9;
+  bool force_path_style = 10;
+  bool no_verify_ssl = 11;
 }
 
 message Slack {

@@ -14,9 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sts"
-	diskbufferreader "github.com/trufflesecurity/disk-buffer-reader"
 	"github.com/go-errors/errors"
 	"github.com/go-logr/logr"
+	diskbufferreader "github.com/trufflesecurity/disk-buffer-reader"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -126,9 +126,17 @@ func (s *Source) setMaxObjectSize(maxObjectSize int64) {
 }
 
 func (s *Source) newClient(region, roleArn string) (*s3.S3, error) {
+	fmt.Printf("Config: '%s'\n", s.conn.EndpointUrl)
+
 	cfg := aws.NewConfig()
 	cfg.CredentialsChainVerboseErrors = aws.Bool(true)
 	cfg.Region = aws.String(region)
+	cfg.S3ForcePathStyle = aws.Bool(s.conn.ForcePathStyle)
+	cfg.DisableSSL = aws.Bool(s.conn.NoVerifySsl)
+
+	if s.conn.EndpointUrl != "" {
+		cfg.Endpoint = aws.String(s.conn.EndpointUrl)
+	}
 
 	switch cred := s.conn.GetCredential().(type) {
 	case *sourcespb.S3_SessionToken:
@@ -242,6 +250,10 @@ func (s *Source) Chunks(ctx context.Context, chunksChan chan *sources.Chunk, _ .
 }
 
 func (s *Source) getRegionalClientForBucket(ctx context.Context, defaultRegionClient *s3.S3, role, bucket string) (*s3.S3, error) {
+	if s.conn.EndpointUrl != "" {
+		return defaultRegionClient, nil
+	}
+
 	region, err := s3manager.GetBucketRegionWithClient(ctx, defaultRegionClient, bucket)
 	if err != nil {
 		return nil, errors.WrapPrefix(err, "could not get s3 region for bucket", 0)
@@ -368,7 +380,7 @@ func (s *Source) pageChunker(ctx context.Context, client *s3.S3, chunksChan chan
 						S3: &source_metadatapb.S3{
 							Bucket:    bucket,
 							File:      sanitizer.UTF8(*obj.Key),
-							Link:      sanitizer.UTF8(makeS3Link(bucket, *client.Config.Region, *obj.Key)),
+							Link:      sanitizer.UTF8(s.makeS3Link(bucket, *client.Config.Region, *obj.Key)),
 							Email:     sanitizer.UTF8(email),
 							Timestamp: sanitizer.UTF8(modified),
 						},
@@ -479,7 +491,11 @@ func (s *Source) visitRoles(ctx context.Context, f func(c context.Context, defau
 
 // S3 links currently have the general format of:
 // https://[bucket].s3[.region unless us-east-1].amazonaws.com/[key]
-func makeS3Link(bucket, region, key string) string {
+func (s *Source) makeS3Link(bucket, region, key string) string {
+	if s.conn.EndpointUrl != "" {
+		return fmt.Sprintf("%s/%s/%s", s.conn.EndpointUrl, bucket, key)
+	}
+
 	if region == "us-east-1" {
 		region = ""
 	} else {

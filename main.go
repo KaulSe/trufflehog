@@ -106,14 +106,18 @@ var (
 	filesystemScanIncludePaths = filesystemScan.Flag("include-paths", "Path to file with newline separated regexes for files to include in scan.").Short('i').String()
 	filesystemScanExcludePaths = filesystemScan.Flag("exclude-paths", "Path to file with newline separated regexes for files to exclude in scan.").Short('x').String()
 
-	s3Scan              = cli.Command("s3", "Find credentials in S3 buckets.")
-	s3ScanKey           = s3Scan.Flag("key", "S3 key used to authenticate. Can be provided with environment variable AWS_ACCESS_KEY_ID.").Envar("AWS_ACCESS_KEY_ID").String()
-	s3ScanRoleArns      = s3Scan.Flag("role-arn", "Specify the ARN of an IAM role to assume for scanning. You can repeat this flag.").Strings()
-	s3ScanSecret        = s3Scan.Flag("secret", "S3 secret used to authenticate. Can be provided with environment variable AWS_SECRET_ACCESS_KEY.").Envar("AWS_SECRET_ACCESS_KEY").String()
-	s3ScanSessionToken  = s3Scan.Flag("session-token", "S3 session token used to authenticate temporary credentials. Can be provided with environment variable AWS_SESSION_TOKEN.").Envar("AWS_SESSION_TOKEN").String()
-	s3ScanCloudEnv      = s3Scan.Flag("cloud-environment", "Use IAM credentials in cloud environment.").Bool()
-	s3ScanBuckets       = s3Scan.Flag("bucket", "Name of S3 bucket to scan. You can repeat this flag.").Strings()
-	s3ScanMaxObjectSize = s3Scan.Flag("max-object-size", "Maximum size of objects to scan. Objects larger than this will be skipped. (Byte units eg. 512B, 2KB, 4MB)").Default("250MB").Bytes()
+	s3Scan               = cli.Command("s3", "Find credentials in S3 buckets.")
+	s3ScanKey            = s3Scan.Flag("key", "S3 key used to authenticate. Can be provided with environment variable AWS_ACCESS_KEY_ID.").Envar("AWS_ACCESS_KEY_ID").String()
+	s3ScanRegion         = s3Scan.Flag("region", "S3 region used to connect. Can be provided with environment variable AWS_DEFAULT_REGION.").Envar("AWS_DEFAULT_REGION").String()
+	s3ScanEndpointUrl    = s3Scan.Flag("endpoint-url", "S3 endpoint used to connect. Can be provided with environment variable AWS_ENDPOINT_URL.").Envar("AWS_ENDPOINT_URL").String()
+	s3ScanNoVerifySsl    = s3Scan.Flag("no-verify-ssl", "By default, Trufflehog uses SSL when communicating with S3. This option overrides the default behavior of verifying SSL certificates.Can be provided with environment variable AWS_ENDPOINT_URL.").Envar("AWS_NO_VERIFY_SSL").Default("false").Bool()
+	s3ScanForcePathStyle = s3Scan.Flag("force-path-style", "Whether to force path style URLs for S3 objects. Can be provided with environment variable AWS_FORCE_PATH_STYLE.").Envar("AWS_FORCE_PATH_STYLE").Bool()
+	s3ScanRoleArns       = s3Scan.Flag("role-arn", "Specify the ARN of an IAM role to assume for scanning. You can repeat this flag.").Strings()
+	s3ScanSecret         = s3Scan.Flag("secret", "S3 secret used to authenticate. Can be provided with environment variable AWS_SECRET_ACCESS_KEY.").Envar("AWS_SECRET_ACCESS_KEY").String()
+	s3ScanSessionToken   = s3Scan.Flag("session-token", "S3 session token used to authenticate temporary credentials. Can be provided with environment variable AWS_SESSION_TOKEN.").Envar("AWS_SESSION_TOKEN").String()
+	s3ScanCloudEnv       = s3Scan.Flag("cloud-environment", "Use IAM credentials in cloud environment.").Bool()
+	s3ScanBuckets        = s3Scan.Flag("bucket", "Name of S3 bucket to scan. You can repeat this flag.").Strings()
+	s3ScanMaxObjectSize  = s3Scan.Flag("max-object-size", "Maximum size of objects to scan. Objects larger than this will be skipped. (Byte units eg. 512B, 2KB, 4MB)").Default("250MB").Bytes()
 
 	gcsScan           = cli.Command("gcs", "Find credentials in GCS buckets.")
 	gcsProjectID      = gcsScan.Flag("project-id", "GCS project ID used to authenticate. Can NOT be used with unauth scan. Can be provided with environment variable GOOGLE_CLOUD_PROJECT.").Envar("GOOGLE_CLOUD_PROJECT").String()
@@ -474,13 +478,17 @@ func run(state overseer.State) {
 		}
 	case s3Scan.FullCommand():
 		cfg := sources.S3Config{
-			Key:           *s3ScanKey,
-			Secret:        *s3ScanSecret,
-			SessionToken:  *s3ScanSessionToken,
-			Buckets:       *s3ScanBuckets,
-			Roles:         *s3ScanRoleArns,
-			CloudCred:     *s3ScanCloudEnv,
-			MaxObjectSize: int64(*s3ScanMaxObjectSize),
+			Key:            *s3ScanKey,
+			Secret:         *s3ScanSecret,
+			SessionToken:   *s3ScanSessionToken,
+			Buckets:        *s3ScanBuckets,
+			Roles:          *s3ScanRoleArns,
+			NoVerifySSL:    *s3ScanNoVerifySsl,
+			ForcePathStyle: *s3ScanForcePathStyle,
+			Region:         *s3ScanRegion,
+			EndpointUrl:    *s3ScanEndpointUrl,
+			CloudCred:      *s3ScanCloudEnv,
+			MaxObjectSize:  int64(*s3ScanMaxObjectSize),
 		}
 		if err := e.ScanS3(ctx, cfg); err != nil {
 			logFatal(err, "Failed to scan S3.")

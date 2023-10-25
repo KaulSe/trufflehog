@@ -232,6 +232,14 @@ type S3Config struct {
 	Secret,
 	// Temporary session token associated with a temporary access key id and secret key.
 	SessionToken string
+	// Whether to force path style URLs for S3 objects.
+	ForcePathStyle bool
+	// Disables SSL verification for S3 connections
+	NoVerifySSL bool
+	// S3 Endpoint URL
+	EndpointUrl string
+	// S3 Region
+	Region string
 	// Buckets is the list of buckets to scan.
 	Buckets []string
 	// Roles is the list of Roles to use.

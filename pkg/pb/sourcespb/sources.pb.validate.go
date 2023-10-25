@@ -2680,6 +2680,14 @@ func (m *S3) validate(all bool) error {
 
 	// no validation rules for MaxObjectSize
 
+	// no validation rules for Region
+
+	// no validation rules for EndpointUrl
+
+	// no validation rules for ForcePathStyle
+
+	// no validation rules for NoVerifySsl
+
 	switch m.Credential.(type) {
 
 	case *S3_AccessKey:

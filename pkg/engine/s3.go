@@ -51,6 +51,17 @@ func (e *Engine) ScanS3(ctx context.Context, c sources.S3Config) error {
 		connection.Roles = c.Roles
 	}
 
+	if len(c.EndpointUrl) > 0 {
+		connection.EndpointUrl = c.EndpointUrl
+	}
+
+	if len(c.Region) > 0 {
+		connection.Region = c.Region
+	}
+
+	connection.ForcePathStyle = c.ForcePathStyle
+	connection.NoVerifySsl = c.NoVerifySSL
+
 	var conn anypb.Any
 	err := anypb.MarshalFrom(&conn, connection, proto.MarshalOptions{})
 	if err != nil {
