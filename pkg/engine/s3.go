@@ -43,7 +43,7 @@ func (e *Engine) ScanS3(ctx context.Context, c sources.S3Config) error {
 			}
 		}
 	}
-	
+
 	if len(c.Buckets) > 0 {
 		connection.Buckets = c.Buckets
 	}

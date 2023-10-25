@@ -126,8 +126,6 @@ func (s *Source) setMaxObjectSize(maxObjectSize int64) {
 }
 
 func (s *Source) newClient(region, roleArn string) (*s3.S3, error) {
-	fmt.Printf("Config: '%s'\n", s.conn.EndpointUrl)
-
 	cfg := aws.NewConfig()
 	cfg.CredentialsChainVerboseErrors = aws.Bool(true)
 	cfg.Region = aws.String(region)
